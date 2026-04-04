@@ -104,10 +104,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
 .btn-primary-auth:hover{transform:translateY(-1px);box-shadow:0 6px 20px var(--accent-glow);}
 .btn-google-auth{width:100%;padding:12px;background:var(--bg3);border:1.5px solid var(--border);border-radius:13px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:all .2s;font-size:14px;font-weight:600;color:var(--text);font-family:var(--font);}
 .btn-google-auth:hover{background:var(--bg4);border-color:var(--border2);}
-.btn-apple-auth{width:100%;padding:12px;background:var(--bg3);border:1.5px solid var(--border);border-radius:13px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:all .2s;font-size:14px;font-weight:600;color:var(--text);font-family:var(--font);margin-top:10px;}
-.btn-apple-auth:hover{background:var(--bg4);border-color:var(--border2);}
-.btn-apple-auth .apple-icon{width:18px;height:18px;fill:var(--text);transition:fill .2s;}
-[data-theme="light"] .btn-apple-auth .apple-icon{fill:#1a1a1a;}
 .auth-divider{display:flex;align-items:center;gap:12px;margin:16px 0;}
 .auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--border);}
 .auth-divider span{font-size:12px;color:var(--text3);font-weight:600;}
@@ -802,10 +798,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
           <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
           Войти через Google
         </button>
-        <button class="btn-apple-auth" onclick="doAppleLogin()">
-          <svg class="apple-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16"><path d="M11.182.008C11.148-.03 9.923.023 8.857 1.18c-1.066 1.156-.902 2.482-.878 2.516s1.52.087 2.475-1.258.762-2.391.728-2.43m3.314 11.733c-.048-.096-2.325-1.234-2.113-3.422s1.675-2.789 1.698-2.854-.597-.79-1.254-1.157a3.7 3.7 0 0 0-1.563-.434c-.108-.003-.483-.095-1.254.116-.508.139-1.653.589-1.968.607-.316.018-1.256-.522-2.267-.665-.647-.125-1.333.131-1.824.328-.49.196-1.422.754-2.074 2.237-.652 1.482-.311 3.83-.067 4.56s.625 1.924 1.273 2.796c.576.984 1.34 1.667 1.659 1.899s1.219.386 1.843.067c.502-.308 1.408-.485 1.766-.472.357.013 1.061.154 1.782.539.571.197 1.111.115 1.652-.105.541-.221 1.324-1.059 2.238-2.758q.52-1.185.473-1.282"/></svg>
-          Войти через Apple
-        </button>
+
       </div>
       <!-- Письмо отправлено -->
       <div id="email-link-sent" style="display:none;">
@@ -1249,9 +1242,7 @@ function initFirebaseListeners(){
         const user=result.user;const uid=user.uid;
         const snap=await db.ref("users/"+uid).once("value");
         if(!snap.exists()){
-          let baseUsername="user"+Math.floor(Math.random()*100000);
-          let username=baseUsername;let exists=true;let counter=1;
-          while(exists){const check=await db.ref("users").orderByChild("username").equalTo("@"+username).once("value");if(check.exists()){username=baseUsername+counter;counter++;}else exists=false;}
+          const username=await generateUniqueUsername();
           const userData={uid,email:user.email||email,username:"@"+username,name:user.displayName||username,bio:"",avatarSvg:"<svg viewBox='0 0 24 24'><circle cx='12' cy='8' r='4'/><path d='M5 20v-2a7 7 0 0114 0v2'/></svg>",createdAt:Date.now()};
           await db.ref("users/"+uid).set(userData);
           await db.ref("userChats/"+uid+"/favorites").set({id:"favorites",type:"private",name:"Избранное",isOwn:true});
@@ -1364,9 +1355,7 @@ async function doGoogleLogin(){
     const user=result.user;const uid=user.uid;
     const snap=await db.ref("users/"+uid).once("value");
     if(!snap.exists()){
-      let baseUsername="user"+Math.floor(Math.random()*10000);
-      let username=baseUsername;let exists=true;let counter=1;
-      while(exists){const check=await db.ref("users").orderByChild("username").equalTo("@"+username).once("value");if(check.exists()){username=baseUsername+counter;counter++;}else exists=false;}
+      const username=await generateUniqueUsername();
       const userData={uid,email:user.email,username:"@"+username,name:user.displayName||username,bio:"",avatarSvg:"<svg viewBox='0 0 24 24'><circle cx='12' cy='8' r='4'/><path d='M5 20v-2a7 7 0 0114 0v2'/></svg>",createdAt:Date.now()};
       await db.ref("users/"+uid).set(userData);
       await db.ref("userChats/"+uid+"/favorites").set({id:"favorites",type:"private",name:"Избранное",isOwn:true});
@@ -1374,24 +1363,6 @@ async function doGoogleLogin(){
   }catch(e){if(e.code!=="auth/popup-closed-by-user")showToast("error","Ошибка Google: "+e.message);}
 }
 
-async function doAppleLogin(){
-  try{
-    const provider=new firebase.auth.OAuthProvider("apple.com");
-    provider.addScope("email");provider.addScope("name");
-    const result=await auth.signInWithPopup(provider);
-    const user=result.user;const uid=user.uid;
-    const snap=await db.ref("users/"+uid).once("value");
-    if(!snap.exists()){
-      let baseUsername="user"+Math.floor(Math.random()*10000);
-      let username=baseUsername;let exists=true;let counter=1;
-      while(exists){const check=await db.ref("users").orderByChild("username").equalTo("@"+username).once("value");if(check.exists()){username=baseUsername+counter;counter++;}else exists=false;}
-      const displayName=user.displayName||result.additionalUserInfo?.profile?.name||username;
-      const userData={uid,email:user.email||"",username:"@"+username,name:displayName,bio:"",avatarSvg:"<svg viewBox='0 0 24 24'><circle cx='12' cy='8' r='4'/><path d='M5 20v-2a7 7 0 0114 0v2'/></svg>",createdAt:Date.now()};
-      await db.ref("users/"+uid).set(userData);
-      await db.ref("userChats/"+uid+"/favorites").set({id:"favorites",type:"private",name:"Избранное",isOwn:true});
-    }
-  }catch(e){if(e.code!=="auth/popup-closed-by-user"&&e.code!=="auth/cancelled-popup-request")showToast("error","Ошибка Apple: "+e.message);}
-}
 
 async function doLogout() {
   if (!confirm("Выйти из аккаунта?")) return;
@@ -1520,6 +1491,22 @@ function setupUserOnlineStatus() {
   window.addEventListener("click", resetInactiveTimer);
   resetInactiveTimer();
 }
+/* ─────────── УНИКАЛЬНЫЙ USERNAME ─────────── */
+async function generateUniqueUsername(){
+  // Берём uid-фрагмент + случайное число для гарантии уникальности
+  const rand=()=>Math.floor(Math.random()*900000)+100000; // 6 цифр
+  let username="user"+rand();
+  let attempts=0;
+  while(attempts<10){
+    const check=await db.ref("users").orderByChild("username").equalTo("@"+username).once("value");
+    if(!check.exists())return username;
+    username="user"+rand();
+    attempts++;
+  }
+  // Последний резерв — uid-суффикс, гарантированно уникален
+  return"user"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+}
+
 function listenForChats(){
   if(!currentUser)return;
   db.ref("userChats/"+currentUser.uid).on("value",(snap)=>{
@@ -1527,26 +1514,51 @@ function listenForChats(){
     Object.entries(data).forEach(([chatId,info])=>{
       if(!appState.chats[chatId]){
         appState.chats[chatId]=info;
+        // Флаг: первая загрузка (инициализация) или реальное новое сообщение
+        let initialized=false;
         db.ref("chats/"+chatId+"/messages").on("value",async(msgSnap)=>{
-          const prev=Object.keys(appState.messages[chatId]||{}).length;
-          await decryptAllMessages(chatId,msgSnap.val()||{});
-          const curr=Object.keys(appState.messages[chatId]||{}).length;
-          if(curr>prev&&appState.currentChatId!==chatId&&currentUser){
-            if(!mutedChats[chatId]){
-              unreadCounts[chatId]=(unreadCounts[chatId]||0)+(curr-prev);
+          const rawData=msgSnap.val()||{};
+          await decryptAllMessages(chatId,rawData);
+
+          if(!initialized){
+            // Первая загрузка — считаем непрочитанные по readBy, не по разнице
+            initialized=true;
+            if(chatId!=="favorites"&&!mutedChats[chatId]){
+              const count=countUnread(chatId);
+              if(count>0){
+                unreadCounts[chatId]=count;
+                recalcUnread();
+              }
+            }
+          } else {
+            // Последующие обновления — реально новые сообщения
+            const msgs=appState.messages[chatId];
+            const allMsgs=Object.values(msgs||{});
+            // Находим только сообщения без readBy[currentUser.uid] от других
+            const newUnread=allMsgs.filter(m=>
+              m.uid!==currentUser.uid&&
+              (!m.readBy||!m.readBy[currentUser.uid])
+            );
+            const newCount=newUnread.length;
+            const prevCount=unreadCounts[chatId]||0;
+
+            if(newCount>prevCount&&appState.currentChatId!==chatId&&!mutedChats[chatId]){
+              unreadCounts[chatId]=newCount;
               recalcUnread();
-              const msgs=Object.values(appState.messages[chatId]);
-              const last=msgs[msgs.length-1];
+              const sorted=allMsgs.sort((a,b)=>b.ts-a.ts);
+              const last=sorted[0];
               if(last&&last.uid!==currentUser.uid){
                 const chatName=appState.chats[chatId]?.name||"Сообщение";
                 sendBrowserNotif(chatName,last._dec||"Новое сообщение");
               }
             }
           }
+
           if(appState.currentChatId===chatId){
             renderMessages(chatId);
-            // Помечаем сообщения как прочитанные
             markMessagesRead(chatId);
+            unreadCounts[chatId]=0;
+            recalcUnread();
           }
           renderChatList();
         });
@@ -1554,6 +1566,17 @@ function listenForChats(){
     });
     renderChatList();
   });
+}
+
+// Считает количество непрочитанных сообщений в чате по readBy
+function countUnread(chatId){
+  if(!currentUser||chatId==="favorites")return 0;
+  const msgs=appState.messages[chatId];
+  if(!msgs)return 0;
+  return Object.values(msgs).filter(m=>
+    m.uid!==currentUser.uid&&
+    (!m.readBy||!m.readBy[currentUser.uid])
+  ).length;
 }
 
 /* ─────────── READ STATUS ─────────── */
