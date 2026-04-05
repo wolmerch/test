@@ -761,6 +761,58 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
   stroke: var(--accent) !important;
 }
 
+/* ===== FIX: SVG иконки аватаров — везде fill:none, stroke из CSS ===== */
+.profile-avatar-big svg,
+.profile-avatar-big svg *,
+.avatar-svg-item svg,
+.avatar-svg-item svg *,
+.popup-avatar-box svg,
+.popup-avatar-box svg *,
+.chat-avatar svg,
+.chat-avatar svg *,
+.chat-header-avatar svg,
+.chat-header-avatar svg *,
+.msg-avatar svg,
+.msg-avatar svg * {
+  fill: none !important;
+}
+
+.profile-avatar-big svg {
+  stroke: var(--accent) !important;
+  stroke-width: 1.2px;
+}
+.avatar-svg-item svg {
+  stroke: var(--accent) !important;
+  stroke-width: 1.2px;
+}
+.popup-avatar-box svg {
+  stroke: var(--accent) !important;
+  stroke-width: 1.4px;
+}
+.chat-avatar svg {
+  stroke: var(--accent) !important;
+  stroke-width: 1.5px;
+}
+.chat-header-avatar svg {
+  stroke: var(--text2) !important;
+  stroke-width: 1.6px;
+}
+.msg-avatar svg {
+  stroke: var(--text2) !important;
+  stroke-width: 1.6px;
+}
+
+[data-theme="light"] .profile-avatar-big svg,
+[data-theme="light"] .avatar-svg-item svg,
+[data-theme="light"] .popup-avatar-box svg,
+[data-theme="light"] .chat-avatar svg {
+  stroke: var(--accent) !important;
+}
+[data-theme="light"] .chat-header-avatar svg,
+[data-theme="light"] .msg-avatar svg {
+  stroke: var(--text2) !important;
+}
+
 </style>
   
 </head>
@@ -1243,9 +1295,10 @@ function initFirebaseListeners(){
         const snap=await db.ref("users/"+uid).once("value");
         if(!snap.exists()){
           const username=await generateUniqueUsername();
-          const userData={uid,email:user.email||email,username:"@"+username,name:user.displayName||username,bio:"",avatarSvg:"<svg viewBox='0 0 24 24'><circle cx='12' cy='8' r='4'/><path d='M5 20v-2a7 7 0 0114 0v2'/></svg>",createdAt:Date.now()};
+          const displayName=user.displayName||("@"+username);
+          const userData={uid,email:user.email||email,username:"@"+username,name:displayName,bio:"",avatarSvg:"<svg viewBox='0 0 24 24'><circle cx='12' cy='8' r='4'/><path d='M5 20v-2a7 7 0 0114 0v2'/></svg>",createdAt:Date.now()};
           await db.ref("users/"+uid).set(userData);
-          await db.ref("userChats/"+uid+"/favorites").set({id:"favorites",type:"private",name:"Избранное",isOwn:true});
+          await db.ref("userChats/"+uid+"/favorites_"+uid).set({id:"favorites_"+uid,type:"favorites",name:"Избранное",isOwn:true,uid});
         }
       }).catch(e=>{console.error(e);showToast("error","Ошибка входа по ссылке");});
     }
@@ -1356,9 +1409,10 @@ async function doGoogleLogin(){
     const snap=await db.ref("users/"+uid).once("value");
     if(!snap.exists()){
       const username=await generateUniqueUsername();
-      const userData={uid,email:user.email,username:"@"+username,name:user.displayName||username,bio:"",avatarSvg:"<svg viewBox='0 0 24 24'><circle cx='12' cy='8' r='4'/><path d='M5 20v-2a7 7 0 0114 0v2'/></svg>",createdAt:Date.now()};
+      const displayName=user.displayName||("@"+username);
+      const userData={uid,email:user.email,username:"@"+username,name:displayName,bio:"",avatarSvg:"<svg viewBox='0 0 24 24'><circle cx='12' cy='8' r='4'/><path d='M5 20v-2a7 7 0 0114 0v2'/></svg>",createdAt:Date.now()};
       await db.ref("users/"+uid).set(userData);
-      await db.ref("userChats/"+uid+"/favorites").set({id:"favorites",type:"private",name:"Избранное",isOwn:true});
+      await db.ref("userChats/"+uid+"/favorites_"+uid).set({id:"favorites_"+uid,type:"favorites",name:"Избранное",isOwn:true,uid});
     }
   }catch(e){if(e.code!=="auth/popup-closed-by-user")showToast("error","Ошибка Google: "+e.message);}
 }
@@ -1449,16 +1503,51 @@ async function loadUserAndShowApp(){
   document.getElementById("app").classList.add("visible");
   const uid=currentUser.uid;
   let profile;
-  try{const snap=await db.ref("users/"+uid).once("value");profile=snap.val();if(!profile){profile={uid,name:"Пользователь",username:"@user",bio:"",avatarSvg:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 20v-2a7 7 0 0114 0v2"/></svg>'};await db.ref("users/"+uid).set(profile);}}
-  catch{profile={uid,name:"Пользователь",username:"@user",bio:"",avatarSvg:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 20v-2a7 7 0 0114 0v2"/></svg>'};}
+  try{
+    const snap=await db.ref("users/"+uid).once("value");
+    profile=snap.val();
+    if(!profile){
+      // Профиль ещё не создан (гонка между onAuthStateChanged и записью в .then())
+      // Ждём до 3 секунд пока он появится
+      profile=await waitForProfile(uid);
+    }
+    if(!profile){
+      // Если за 3 секунды так и не появился — создаём сами
+      const username=await generateUniqueUsername();
+      profile={uid,email:currentUser.email||"",username:"@"+username,name:"@"+username,bio:"",avatarSvg:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 20v-2a7 7 0 0114 0v2"/></svg>',createdAt:Date.now()};
+      await db.ref("users/"+uid).set(profile);
+      await db.ref("userChats/"+uid+"/favorites_"+uid).set({id:"favorites_"+uid,type:"favorites",name:"Избранное",isOwn:true,uid});
+    }
+  }
+  catch{
+    const username="user"+Math.floor(Math.random()*900000+100000);
+    profile={uid,username:"@"+username,name:"@"+username,bio:"",avatarSvg:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 20v-2a7 7 0 0114 0v2"/></svg>'};
+  }
   appState.profile=profile;
   document.getElementById("settings-username-sub").textContent=profile.username||"@user";
   updateProfileAvatarDisplay();
-  appState.chats["favorites"]={id:"favorites",type:"private",name:"Избранное",isOwn:true};
+  // Избранное — уникальный ID для каждого пользователя
+  const favId="favorites_"+uid;
+  appState.chats[favId]={id:favId,type:"favorites",name:"Избранное",isOwn:true,uid};
   loadFolders();
   renderChatList();
   setupUserOnlineStatus();
   listenForChats();
+}
+
+// Ждёт появления профиля в базе (до 3 секунд, нужно при первом входе через email-link)
+function waitForProfile(uid){
+  return new Promise((resolve)=>{
+    let attempts=0;
+    const interval=setInterval(async()=>{
+      attempts++;
+      try{
+        const snap=await db.ref("users/"+uid).once("value");
+        if(snap.exists()){clearInterval(interval);resolve(snap.val());return;}
+      }catch{}
+      if(attempts>=6){clearInterval(interval);resolve(null);}
+    },500);
+  });
 }
 function updateProfileAvatarDisplay(){const p=appState.profile;const el=document.getElementById("profile-avatar-big");if(!el)return;el.innerHTML=p.avatarSvg||'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 20v-2a7 7 0 0114 0v2"/></svg>';}
 function setupUserOnlineStatus() {
@@ -1523,7 +1612,7 @@ function listenForChats(){
           if(!initialized){
             // Первая загрузка — считаем непрочитанные по readBy, не по разнице
             initialized=true;
-            if(chatId!=="favorites"&&!mutedChats[chatId]){
+            if(appState.chats[chatId]?.type!=="favorites"&&!mutedChats[chatId]){
               const count=countUnread(chatId);
               if(count>0){
                 unreadCounts[chatId]=count;
@@ -1570,7 +1659,7 @@ function listenForChats(){
 
 // Считает количество непрочитанных сообщений в чате по readBy
 function countUnread(chatId){
-  if(!currentUser||chatId==="favorites")return 0;
+  if(!currentUser||appState.chats[chatId]?.type==="favorites")return 0;
   const msgs=appState.messages[chatId];
   if(!msgs)return 0;
   return Object.values(msgs).filter(m=>
@@ -1581,7 +1670,7 @@ function countUnread(chatId){
 
 /* ─────────── READ STATUS ─────────── */
 async function markMessagesRead(chatId){
-  if(!currentUser||!chatId||chatId==="favorites")return;
+  if(!currentUser||!chatId||appState.chats[chatId]?.type==="favorites")return;
   const msgs=appState.messages[chatId];
   if(!msgs)return;
   const updates={};
@@ -1596,12 +1685,10 @@ async function markMessagesRead(chatId){
 }
 
 function getReadStatus(msg,chatId){
-  // Только для своих сообщений
   if(!currentUser||msg.uid!==currentUser.uid)return null;
-  if(chatId==="favorites")return"sent";
+  if(appState.chats[chatId]?.type==="favorites")return"sent";
   const chat=appState.chats[chatId];
   if(!chat||!chat.uid)return"sent";
-  // Проверяем прочитал ли другой пользователь
   if(msg.readBy&&msg.readBy[chat.uid])return"read";
   return"sent";
 }
@@ -1796,7 +1883,7 @@ async function openCreateFolderModal() {
   container.innerHTML = "";
   
   Object.values(appState.chats).forEach(chat => {
-    if (chat.id === "favorites") return;
+    if (appState.chats[chat.id]?.type === "favorites") return;
     const row = document.createElement("label");
     row.style.cssText = "display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;cursor:pointer;";
     row.innerHTML = `<input type="checkbox" value="${chat.id}" style="width:16px;height:16px;accent-color:var(--accent)"><span style="font-size:13px;font-weight:600;">${escapeHtml(chat.name)}</span>`;
@@ -1855,13 +1942,16 @@ async function deleteFolder(folderId) {
 }
 
 /* ─────────── CHAT LIST ─────────── */
+function getFavId(){return currentUser?"favorites_"+currentUser.uid:null;}
+function isFavChat(chat){return chat&&(chat.type==="favorites"||chat.id===getFavId());}
+
 function renderChatList(filter="",folderChatIds=null){
   const list=document.getElementById("chat-list");list.innerHTML="";
   let chats=Object.values(appState.chats);
   if(folderChatIds)chats=chats.filter(c=>folderChatIds.includes(c.id));
-  const fav=chats.find(c=>c.id==="favorites");
+  const fav=chats.find(c=>isFavChat(c));
   if(fav&&matchFilter(fav.name,filter))list.appendChild(createChatItem(fav));
-  chats.filter(c=>c.id!=="favorites"&&matchFilter(c.name,filter)).sort((a,b)=>{
+  chats.filter(c=>!isFavChat(c)&&matchFilter(c.name,filter)).sort((a,b)=>{
     const aMsg=appState.messages[a.id];const bMsg=appState.messages[b.id];
     const aLast=aMsg?Math.max(...Object.values(aMsg).map(m=>m.ts||0)):0;
     const bLast=bMsg?Math.max(...Object.values(bMsg).map(m=>m.ts||0)):0;
@@ -1877,11 +1967,11 @@ function createChatItem(chat){
   let lastText="";if(last){if(last.type==="poll")lastText="📊 Опрос";else lastText=last._dec||"";}
   const lastTime=last?formatTime(last.ts):"";
   const avatarContent=chat.avatarSvg||'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 20v-2a7 7 0 0114 0v2"/></svg>';
-  const onlineDot=(chat.type==="private"&&chat.id!=="favorites"&&chat.online)?'<span class="online-badge"></span>':"";
+  const onlineDot=(chat.type==="private"&&!isFavChat(chat)&&chat.online)?'<span class="online-badge"></span>':"";
   const unread=unreadCounts[chat.id]||0;
   const unreadBadge=unread>0&&appState.currentChatId!==chat.id?`<span class="chat-unread-badge">${unread>99?"99+":unread}</span>`:"";
-  const isFav=chat.id==="favorites";
-  item.innerHTML=`<div class="chat-avatar">${avatarContent}${onlineDot}</div><div class="chat-item-info"><div class="chat-item-top"><div class="chat-item-name">${escapeHtml(chat.name)}${isFav?'<span class="favorites-badge">★</span>':""}</div><div style="display:flex;align-items:center;gap:5px;">${unreadBadge}<div class="chat-item-time">${lastTime}</div></div></div><div class="chat-item-preview">${escapeHtml(lastText)}</div></div>`;
+  const isThisFav=isFavChat(chat);
+  item.innerHTML=`<div class="chat-avatar">${avatarContent}${onlineDot}</div><div class="chat-item-info"><div class="chat-item-top"><div class="chat-item-name">${escapeHtml(chat.name)}${isThisFav?'<span class="favorites-badge">★</span>':""}</div><div style="display:flex;align-items:center;gap:5px;">${unreadBadge}<div class="chat-item-time">${lastTime}</div></div></div><div class="chat-item-preview">${escapeHtml(lastText)}</div></div>`;
   item.onclick=()=>openChat(chat.id);
   return item;
 }
@@ -1897,12 +1987,11 @@ async function openChat(chatId){
   const ac=document.getElementById("active-chat");ac.style.display="flex";
   if(window.innerWidth<=768)document.getElementById("chat-area").classList.add("mobile-open");
   const avatarEl = document.getElementById("chat-hdr-avatar");
-  avatarEl.innerHTML = chat.avatarSvg || '<svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><circle cx="12" cy="8" r="4"/><path d="M5 20v-2a7 7 0 0114 0v2"/></svg>';
   avatarEl.innerHTML=chat.avatarSvg||'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 20v-2a7 7 0 0114 0v2"/></svg>';
   document.getElementById("chat-hdr-name").textContent=chat.name;
   const statusEl=document.getElementById("chat-hdr-status");
-  if (chatId === "favorites") {
-  statusEl.innerHTML = '<span style="color:var(--yellow);">Только вы</span>';
+  if (appState.chats[chatId]?.type === "favorites") {
+    statusEl.innerHTML = '<span style="color:var(--yellow);">Только вы</span>';
 } else if (chat.uid) {
   if (onlineListeners[chatId]) onlineListeners[chatId]();
   
@@ -1988,7 +2077,14 @@ function setupTypingListener(chatId, statusEl) {
   };
 }
 async function loadMessages(chatId){
-  if(chatId==="favorites"){appState.messages[chatId]=JSON.parse(localStorage.getItem("fc_fav_msgs")||"{}");for(const[k,v]of Object.entries(appState.messages[chatId])){if(!v._dec&&v.text)v._dec=await decryptText(v.text);}renderMessages(chatId);return;}
+  const isFav=appState.chats[chatId]?.type==="favorites";
+  if(isFav){
+    // Загружаем избранное из RTDB (уникально для каждого пользователя)
+    const snap=await db.ref("chats/"+chatId+"/messages").once("value");
+    await decryptAllMessages(chatId,snap.val()||{});
+    renderMessages(chatId);
+    return;
+  }
   const snap=await db.ref("chats/"+chatId+"/messages").once("value");
   await decryptAllMessages(chatId,snap.val()||{});renderMessages(chatId);
 }
@@ -2059,7 +2155,7 @@ function createMessageElement(id, msg, chatId) {
 }
 
 function renderReadStatus(msg, chatId){
-  if(!currentUser||msg.uid!==currentUser.uid||chatId==="favorites")return"";
+  if(!currentUser||msg.uid!==currentUser.uid||appState.chats[chatId]?.type==="favorites")return"";
   const status=getReadStatus(msg,chatId);
   if(status==="read"){
     // Двойная галочка синяя — прочитано
@@ -2166,22 +2262,25 @@ async function sendMessageData(chatId,data){
   appState.messages[chatId][msgId]=msg;
   if(appState.currentChatId===chatId)renderMessages(chatId);
   renderChatList();
-  if(chatId==="favorites"){const stored=JSON.parse(localStorage.getItem("fc_fav_msgs")||"{}");stored[msgId]=msg;localStorage.setItem("fc_fav_msgs",JSON.stringify(stored));return;}
+  // Избранное теперь тоже хранится в RTDB (favorites_uid)
+  const isFav=appState.chats[chatId]?.type==="favorites";
   try{
     await db.ref(`chats/${chatId}/messages/${msgId}`).set(msg);
     await db.ref(`chats/${chatId}/lastMsg`).set({text:encrypted,ts:msg.ts,uid:currentUser.uid});
-    await db.ref(`userChats/${currentUser.uid}/${chatId}`).update({lastTs:msg.ts});
-    // Ensure the other user has the chat in their list
-    const chat=appState.chats[chatId];
-    if(chat&&chat.uid&&chat.uid!==currentUser.uid){
-      const otherChatSnap=await db.ref("userChats/"+chat.uid+"/"+chatId).once("value");
-      if(!otherChatSnap.exists()){
-        await db.ref("userChats/"+chat.uid+"/"+chatId).set({
-          id:chatId,type:"private",
-          name:appState.profile.name||"Пользователь",
-          uid:currentUser.uid,
-          avatarSvg:appState.profile.avatarSvg||'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 20v-2a7 7 0 0114 0v2"/></svg>'
-        });
+    if(!isFav){
+      await db.ref(`userChats/${currentUser.uid}/${chatId}`).update({lastTs:msg.ts});
+      // Ensure the other user has the chat in their list
+      const chat=appState.chats[chatId];
+      if(chat&&chat.uid&&chat.uid!==currentUser.uid){
+        const otherChatSnap=await db.ref("userChats/"+chat.uid+"/"+chatId).once("value");
+        if(!otherChatSnap.exists()){
+          await db.ref("userChats/"+chat.uid+"/"+chatId).set({
+            id:chatId,type:"private",
+            name:appState.profile.name||"Пользователь",
+            uid:currentUser.uid,
+            avatarSvg:appState.profile.avatarSvg||'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 20v-2a7 7 0 0114 0v2"/></svg>'
+          });
+        }
       }
     }
   }catch{showToast("error","Ошибка отправки");}
@@ -2295,7 +2394,7 @@ async function openChatInfoModal(){
   const title=document.getElementById("chat-info-title");
   const content=document.getElementById("chat-info-content");
   title.innerHTML=`${escapeHtml(chat.name)} <button class="modal-close" onclick="closeModal('chat-info-modal')">✕</button>`;
-  if(chat.id==="favorites"){content.innerHTML=`<div style="text-align:center;padding:20px;">Избранное — только ваши заметки</div>`;}
+  if(appState.chats[chat.id]?.type==="favorites"){content.innerHTML=`<div style="text-align:center;padding:20px;">Избранное — только ваши заметки</div>`;}
   else if(chat.uid){
     const userSnap=await db.ref("users/"+chat.uid).once("value");const user=userSnap.val();
     const onlineSnap=await db.ref("users/"+chat.uid+"/online").once("value");const isOnline=onlineSnap.val();
@@ -2328,7 +2427,12 @@ async function openChatInfoModal(){
 async function addContactByUid(uid,name,username,avatarSvg){const contacts=JSON.parse(localStorage.getItem("fc_contacts_"+currentUser.uid)||"[]");if(!contacts.find(c=>c.uid===uid))contacts.push({uid,name,username,avatarSvg});localStorage.setItem("fc_contacts_"+currentUser.uid,JSON.stringify(contacts));showToast("success","Контакт добавлен");closeModal("chat-info-modal");}
 async function removeContact(uid){let contacts=JSON.parse(localStorage.getItem("fc_contacts_"+currentUser.uid)||"[]");contacts=contacts.filter(c=>c.uid!==uid);localStorage.setItem("fc_contacts_"+currentUser.uid,JSON.stringify(contacts));showToast("success","Контакт удалён");closeModal("chat-info-modal");}
 function blockUser(uid){showToast("info","Пользователь заблокирован");}
-function openFavorites(){closeSettings();openChat("favorites");}
+function openFavorites(){
+  closeSettings();
+  if(!currentUser)return;
+  const favId="favorites_"+currentUser.uid;
+  openChat(favId);
+}
 function openContacts(){renderContactsList();openModal("contacts-modal");}
 function renderContactsList(){
   const contacts=JSON.parse(localStorage.getItem("fc_contacts_"+currentUser?.uid)||"[]");
