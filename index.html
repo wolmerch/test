@@ -361,6 +361,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
 .msg-text{font-size:14px;line-height:1.45;white-space:pre-wrap;}
 .msg-meta{display:flex;align-items:center;justify-content:flex-end;gap:5px;margin-top:4px;}
 .msg-time{font-size:10px;color:var(--text3);}
+.msg-edited{font-size:10px;color:var(--text3);font-style:italic;opacity:.75;}
+.message.own .msg-edited{color:rgba(255,255,255,.55);}
 
 /* POLLS */
 /* ===== ПОЛНОСТЬЮ ПЕРЕОПРЕДЕЛЯЕМ СТИЛИ ДЛЯ ОПРОСОВ ===== */
@@ -368,27 +370,29 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
 .poll-msg {
   background: var(--bg2);
   border-radius: 14px;
-  padding: 12px 14px;
-  min-width: 220px;
-  max-width: 280px;
+  padding: 0.85em 1em;
+  min-width: 15em;
+  max-width: 20em;
   border: 1px solid var(--border);
+  font-size: 14px; /* базовый размер — масштабируется zoom-ом */
+  box-sizing: border-box;
 }
 
 .poll-title {
-  font-size: 14px;
+  font-size: 1em;
   font-weight: 700;
-  margin-bottom: 12px;
+  margin-bottom: 0.85em;
   color: var(--text);
 }
 
 .poll-option {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 8px 10px;
+  gap: 0.6em;
+  padding: 0.55em 0.7em;
   background: var(--bg3);
-  border-radius: 10px;
-  margin-bottom: 6px;
+  border-radius: 0.7em;
+  margin-bottom: 0.4em;
   cursor: pointer;
   transition: all 0.2s;
   border: 1px solid var(--border);
@@ -406,7 +410,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
 
 .poll-option span {
   flex: 1;
-  font-size: 13px;
+  font-size: 0.92em;
   font-weight: 500;
   color: var(--text);
 }
@@ -418,7 +422,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
 
 .poll-bar-wrap {
   flex: 1;
-  height: 4px;
+  height: 3px;
   background: var(--border2);
   border-radius: 4px;
   overflow: hidden;
@@ -432,17 +436,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
 }
 
 .poll-pct {
-  font-size: 11px;
+  font-size: 0.78em;
   color: var(--text3);
   font-weight: 600;
-  width: 34px;
+  width: 2.6em;
   text-align: right;
 }
 
 .poll-footer {
-  font-size: 10px;
+  font-size: 0.72em;
   color: var(--text3);
-  margin-top: 8px;
+  margin-top: 0.6em;
   font-weight: 500;
 }
 
@@ -1348,7 +1352,8 @@ function applyZoom(val){
     .msg-text{font-size:${14*scale}px !important;}
     .msg-bubble{padding:${8*scale}px ${12*scale}px ${7*scale}px !important;}
     .msg-time{font-size:${10*scale}px !important;}
-    .poll-msg{transform:scale(${scale});transform-origin:left top;}
+    .msg-edited{font-size:${10*scale}px !important;}
+    .poll-msg{font-size:${14*scale}px !important;}
   `;
   document.head.appendChild(style);
   const slider=document.getElementById("zoom-slider");
@@ -2140,11 +2145,11 @@ function createMessageElement(id, msg, chatId) {
   if (msg.type === "poll") {
     content += renderPollHtml(id, msg, chatId);
   } else {
-    const editedMark=msg.edited?`<span style="font-size:10px;opacity:.6;margin-left:4px;font-style:italic;">изменено</span>`:"";
-    content += `<div class="msg-text">${escapeHtml(msg._dec || msg.text || "").replace(/\n/g, '<br>')}${editedMark}</div>`;
+    content += `<div class="msg-text">${escapeHtml(msg._dec || msg.text || "").replace(/\n/g, '<br>')}</div>`;
   }
   
-  el.innerHTML = `${avatarHtml}<div class="msg-bubble">${content}<div class="msg-meta"><span class="msg-time">${formatTime(msg.ts)}</span>${renderReadStatus(msg,chatId)}</div></div>`;
+  const editedMark=msg.edited?`<span class="msg-edited">изменено</span>`:"";
+  el.innerHTML = `${avatarHtml}<div class="msg-bubble">${content}<div class="msg-meta"><span class="msg-time">${formatTime(msg.ts)}</span>${editedMark}${renderReadStatus(msg,chatId)}</div></div>`;
   
   el.addEventListener("contextmenu", (e) => {
     e.preventDefault();
