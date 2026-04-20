@@ -3513,10 +3513,12 @@
     document.getElementById("settings-overlay").classList.remove("open");
   }
 
-  function setSidebarTab(tab) {
-    document.querySelectorAll(".sidebar-btn").forEach(b => b.classList.remove("active"));
-    document.getElementById("sb-" + tab) ? .classList.add("active");
-  }
+    function setSidebarTab(tab) {
+        document.querySelectorAll(".sidebar-btn").forEach(b=>b.classList.remove("active"));
+
+        var _sb = document.getElementById("sb-" + tab);
+        if (_sb) _sb.classList.add("active");
+    }
 
   function openAboutModal() {
     closeSettings();
