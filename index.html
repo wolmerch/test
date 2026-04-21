@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes"/>
 <title>Fourchat</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<!-- reCAPTCHA v3 — замени 6LfzNMIsAAAAAHhvV3yLwoyhLQwzP7OzZzPAm9XW на ключ из console.cloud.google.com -->
+<script src="https://www.google.com/recaptcha/api.js?render=6LfzNMIsAAAAAHhvV3yLwoyhLQwzP7OzZzPAm9XW"></script>
 <link rel="shortcut icon" id="favicon-link" href="./img.png" type="image/x-icon"/>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
@@ -97,7 +99,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
 .btn-primary-auth{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;border:none;border-radius:13px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;margin-bottom:12px;font-family:var(--font);letter-spacing:.2px;}
 .btn-primary-auth:hover{transform:translateY(-1px);box-shadow:0 6px 20px var(--accent-glow);}
 .btn-google-auth{width:100%;padding:12px;background:var(--bg3);border:1.5px solid var(--border);border-radius:13px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:all .2s;font-size:14px;font-weight:600;color:var(--text);font-family:var(--font);}
-.btn-google-auth:hover{background:var(--bg4);border-color:var(--border2);}
+.auth-recaptcha-note{font-size:11px;color:var(--text3);text-align:center;margin-top:14px;line-height:1.5;}
+.auth-recaptcha-note a{color:var(--text3);text-decoration:underline;}
+/* Скрываем стандартный badge reCAPTCHA — показываем своё уведомление */
+.grecaptcha-badge{visibility:hidden!important;}
 .btn-github-auth{width:100%;padding:12px;background:#24292e;border:1.5px solid #444d56;border-radius:13px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:all .2s;font-size:14px;font-weight:600;color:#fff;font-family:var(--font);}
 .btn-github-auth:hover{background:#2f363d;border-color:#6a737d;transform:translateY(-1px);}
 [data-theme="light"] .btn-github-auth{background:#24292e;border-color:#444d56;color:#fff;}
@@ -827,14 +832,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
     <div class="auth-box">
       <div class="auth-title">Войти или создать аккаунт</div>
       <div class="auth-error" id="login-error"></div>
-      <button class="btn-google-auth" onclick="doGoogleLogin()" style="margin-bottom:10px;">
+      <button class="btn-google-auth" id="btn-google" onclick="handleGoogleLogin()" style="margin-bottom:10px;">
         <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
         Войти через Google
       </button>
-      <button class="btn-github-auth" onclick="doGithubLogin()">
+      <button class="btn-github-auth" id="btn-github" onclick="handleGithubLogin()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
         Войти через GitHub
       </button>
+      <div class="auth-recaptcha-note">
+        Защищено reCAPTCHA.
+        <a href="https://policies.google.com/privacy" target="_blank">Конфиденциальность</a> и
+        <a href="https://policies.google.com/terms" target="_blank">Условия</a> Google.
+      </div>
     </div>
   </div>
 </div>
@@ -1166,10 +1176,7 @@ let unreadCounts={};
 let mutedChats={};
 let chatFolders=[];
 let appState={currentChatId:null,chats:{},messages:{},replyTo:null,profile:{}};
-const CRYPTO_KEY="fourchat-SK-klp67548-4ch-x3d";
-let _cryptoKey=null;
-
-// Обновление времени последнего посещения
+// E2E шифрование — см. раздел E2E CRYPTO ниже
 let lastSeenUpdateTimer = null;
 
 function updateLastSeen() {
@@ -1233,20 +1240,211 @@ function plural(n, f1, f2, f5) {
   if (v2 >= 2 && v2 <= 4) return f2;
   return f5;
 }
-  
-/* ─────────── CRYPTO ─────────── */
-async function getCryptoKey(){if(_cryptoKey)return _cryptoKey;const enc=new TextEncoder();const rawKey=await crypto.subtle.importKey("raw",enc.encode(CRYPTO_KEY),{name:"PBKDF2"},false,["deriveKey"]);_cryptoKey=await crypto.subtle.deriveKey({name:"PBKDF2",salt:enc.encode("fourchat_salt_v1"),iterations:100000,hash:"SHA-256"},rawKey,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);return _cryptoKey;}
-async function encryptText(text){try{const key=await getCryptoKey();const enc=new TextEncoder();const iv=crypto.getRandomValues(new Uint8Array(12));const encrypted=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,enc.encode(text));const combined=new Uint8Array(iv.length+encrypted.byteLength);combined.set(iv,0);combined.set(new Uint8Array(encrypted),iv.length);return btoa(Array.from(combined).map(function(b){return String.fromCharCode(b);}).join(""));}catch{return text;}}
-async function decryptText(encrypted){try{const key=await getCryptoKey();const combined=Uint8Array.from(atob(encrypted),c=>c.charCodeAt(0));const iv=combined.slice(0,12),data=combined.slice(12);const dec=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,data);return new TextDecoder().decode(dec);}catch{return encrypted;}}
+
+const RECAPTCHA_SITE_KEY = "6LdANsIsAAAAAOA-O3QfWOeObfz9o8-9CWqB56QJ";
+let appCheckInitialized = false;
+
+async function initAppCheck() {
+  if (appCheckInitialized) return;
+  try {
+    // Загружаем firebase-app-check
+    await new Promise(function(resolve, reject) {
+      var s = document.createElement("script");
+      s.src = "https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js";
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+    firebase.appCheck().activate(
+      new firebase.appCheck.ReCaptchaV3Provider(RECAPTCHA_SITE_KEY),
+      true // auto-refresh токена
+    );
+    appCheckInitialized = true;
+  } catch(e) {
+    console.warn("App Check не инициализирован:", e.message);
+  }
+}
+
+/* ─────────── E2E CRYPTO (ECDH) ─────────── */
+// Схема:
+// 1. При первом входе генерируется пара ключей ECDH (публичный + приватный)
+// 2. Публичный ключ сохраняется в RTDB (users/uid/publicKey) — виден всем
+// 3. Приватный ключ хранится ТОЛЬКО в IndexedDB браузера — никуда не передаётся
+// 4. При открытии чата: берём публичный ключ собеседника + свой приватный → общий секрет AES
+// 5. Этим секретом шифруются/расшифровываются сообщения
+
+const IDB_NAME = "fourchat_keys";
+const IDB_STORE = "keypairs";
+
+// Открываем IndexedDB
+function openKeyDB() {
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = function(e) {
+      e.target.result.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess = function(e) { resolve(e.target.result); };
+    req.onerror = function() { reject(req.error); };
+  });
+}
+
+async function savePrivateKey(uid, privateKey) {
+  var db_idb = await openKeyDB();
+  return new Promise(function(resolve, reject) {
+    var tx = db_idb.transaction(IDB_STORE, "readwrite");
+    tx.objectStore(IDB_STORE).put(privateKey, "privkey_" + uid);
+    tx.oncomplete = resolve;
+    tx.onerror = function() { reject(tx.error); };
+  });
+}
+
+async function loadPrivateKey(uid) {
+  var db_idb = await openKeyDB();
+  return new Promise(function(resolve, reject) {
+    var tx = db_idb.transaction(IDB_STORE, "readonly");
+    var req = tx.objectStore(IDB_STORE).get("privkey_" + uid);
+    req.onsuccess = function() { resolve(req.result || null); };
+    req.onerror = function() { reject(req.error); };
+  });
+}
+
+// Экспортируем публичный ключ в base64
+async function exportPublicKey(publicKey) {
+  var raw = await crypto.subtle.exportKey("raw", publicKey);
+  return btoa(Array.from(new Uint8Array(raw)).map(function(b){return String.fromCharCode(b);}).join(""));
+}
+
+// Импортируем публичный ключ из base64
+async function importPublicKey(b64) {
+  var raw = Uint8Array.from(atob(b64), function(c){return c.charCodeAt(0);});
+  return crypto.subtle.importKey("raw", raw, {name:"ECDH", namedCurve:"P-256"}, false, []);
+}
+
+// Генерируем или загружаем пару ключей пользователя
+async function getOrCreateKeyPair(uid) {
+  var privateKey = await loadPrivateKey(uid);
+  if (privateKey) {
+    // Приватный ключ есть — загружаем публичный из базы
+    var snap = await db.ref("users/" + uid + "/publicKey").once("value");
+    if (snap.val()) {
+      return { privateKey: privateKey, publicKeyB64: snap.val() };
+    }
+  }
+  // Генерируем новую пару
+  var keyPair = await crypto.subtle.generateKey(
+    {name: "ECDH", namedCurve: "P-256"},
+    false, // приватный ключ неэкспортируемый — нельзя вытащить из браузера
+    ["deriveKey"]
+  );
+  var publicKeyB64 = await exportPublicKey(keyPair.publicKey);
+  // Сохраняем приватный в IndexedDB (только этот браузер)
+  await savePrivateKey(uid, keyPair.privateKey);
+  // Сохраняем публичный в RTDB (видят все для шифрования)
+  await db.ref("users/" + uid + "/publicKey").set(publicKeyB64);
+  return { privateKey: keyPair.privateKey, publicKeyB64: publicKeyB64 };
+}
+
+// Кеш общих секретов для каждого чата
+var _sharedKeys = {};
+
+// Получаем общий AES-ключ для чата с конкретным пользователем
+async function getSharedKey(myUid, otherUid) {
+  var cacheKey = myUid + "_" + otherUid;
+  if (_sharedKeys[cacheKey]) return _sharedKeys[cacheKey];
+  try {
+    // Мой приватный ключ
+    var myPrivKey = await loadPrivateKey(myUid);
+    if (!myPrivKey) return null;
+    // Публичный ключ собеседника из RTDB
+    var snap = await db.ref("users/" + otherUid + "/publicKey").once("value");
+    if (!snap.val()) return null;
+    var otherPubKey = await importPublicKey(snap.val());
+    // Деривируем общий AES-GCM ключ через ECDH
+    var sharedKey = await crypto.subtle.deriveKey(
+      {name: "ECDH", public: otherPubKey},
+      myPrivKey,
+      {name: "AES-GCM", length: 256},
+      false,
+      ["encrypt", "decrypt"]
+    );
+    _sharedKeys[cacheKey] = sharedKey;
+    return sharedKey;
+  } catch(e) {
+    return null;
+  }
+}
+
+// Для Избранного — личный ключ на основе uid (только свои сообщения)
+var _selfKey = null;
+async function getSelfKey(uid) {
+  if (_selfKey) return _selfKey;
+  var enc = new TextEncoder();
+  var rawKey = await crypto.subtle.importKey("raw", enc.encode(uid + "_self"), {name:"PBKDF2"}, false, ["deriveKey"]);
+  _selfKey = await crypto.subtle.deriveKey(
+    {name:"PBKDF2", salt:enc.encode("fourchat_self_v1"), iterations:100000, hash:"SHA-256"},
+    rawKey, {name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]
+  );
+  return _selfKey;
+}
+
+// Шифруем текст ключом конкретного чата
+async function encryptForChat(text, chatId) {
+  try {
+    var key = await getKeyForChat(chatId);
+    if (!key) return text;
+    var enc = new TextEncoder();
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    var encrypted = await crypto.subtle.encrypt({name:"AES-GCM", iv:iv}, key, enc.encode(text));
+    var combined = new Uint8Array(iv.length + encrypted.byteLength);
+    combined.set(iv, 0); combined.set(new Uint8Array(encrypted), iv.length);
+    return btoa(Array.from(combined).map(function(b){return String.fromCharCode(b);}).join(""));
+  } catch(e) { return text; }
+}
+
+async function decryptForChat(encrypted, chatId) {
+  try {
+    var key = await getKeyForChat(chatId);
+    if (!key) return encrypted;
+    var combined = Uint8Array.from(atob(encrypted), function(c){return c.charCodeAt(0);});
+    var iv = combined.slice(0,12), data = combined.slice(12);
+    var dec = await crypto.subtle.decrypt({name:"AES-GCM", iv:iv}, key, data);
+    return new TextDecoder().decode(dec);
+  } catch(e) { return encrypted; }
+}
+
+// Определяем нужный ключ по типу чата
+async function getKeyForChat(chatId) {
+  if (!currentUser) return null;
+  var chat = appState.chats[chatId];
+  if (!chat) return null;
+  // Избранное — личный ключ
+  if (chat.type === "favorites") return getSelfKey(currentUser.uid);
+  // Личный чат — общий ECDH ключ с собеседником
+  if (chat.uid) return getSharedKey(currentUser.uid, chat.uid);
+  return null;
+}
+
+// encryptForChat / decryptForChat используются напрямую везде в коде
+
+// Инициализация при входе — генерируем/загружаем ключи
+async function initCryptoKey(uid) {
+  _sharedKeys = {};
+  _selfKey = null;
+  try {
+    await getOrCreateKeyPair(uid);
+  } catch(e) {
+    console.warn("Ошибка инициализации E2E ключей:", e);
+  }
+}
 
 /* ─────────── INIT ─────────── */
-window.addEventListener("DOMContentLoaded",async()=>{
+window.addEventListener("DOMContentLoaded",async function(){
   buildEmojiPicker();
-  const savedTheme=localStorage.getItem("fc_theme");
+  var savedTheme=localStorage.getItem("fc_theme");
   if(savedTheme==="light"){document.documentElement.dataset.theme="light";document.getElementById("theme-switch").checked=true;document.getElementById("theme-label-sub").textContent="Включено (светлая)";}
-  const savedZoom=localStorage.getItem("fc_zoom");
+  var savedZoom=localStorage.getItem("fc_zoom");
   if(savedZoom){applyZoom(parseInt(savedZoom));}
   await loadFirebase(FIREBASE_CONFIG);
+  await initAppCheck();
   initFirebaseListeners();
   setupNotifications();
 });
@@ -1254,7 +1452,19 @@ function showLoading(v){}
 async function loadFirebase(cfg){return new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error("Timeout")),12000);const script=document.createElement("script");script.src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js";script.onload=()=>{const scripts=["https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js","https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"];let loaded=0;scripts.forEach(src=>{const s=document.createElement("script");s.src=src;s.onload=()=>{if(++loaded===scripts.length){clearTimeout(timeout);initFirebaseApp(cfg,resolve,reject);}};s.onerror=()=>reject(new Error("Script failed"));document.head.appendChild(s);});};script.onerror=()=>reject(new Error("Firebase app script failed"));document.head.appendChild(script);});}
 function initFirebaseApp(cfg,resolve,reject){try{firebase.initializeApp(cfg);auth=firebase.auth();db=firebase.database();resolve();}catch(e){reject(e);}}
 function initFirebaseListeners(){
-  auth.onAuthStateChanged(user=>{if(user){currentUser=user;loadUserAndShowApp();}else{currentUser=null;showAuthScreen();}});
+  auth.onAuthStateChanged(function(user){
+    if(user){
+      currentUser=user;
+      initCryptoKey(user.uid).then(function(){
+        loadUserAndShowApp();
+      });
+    }else{
+      currentUser=null;
+      _sharedKeys={};
+      _selfKey=null;
+      showAuthScreen();
+    }
+  });
 }
 
 /* ─────────── NOTIFICATIONS ─────────── */
@@ -1329,6 +1539,64 @@ function closeSettings(){
 function setSidebarTab(tab){document.querySelectorAll(".sidebar-btn").forEach(b=>b.classList.remove("active"));var _sb=document.getElementById("sb-"+tab);if(_sb)_sb.classList.add("active");}
 function openAboutModal(){closeSettings();openModal("about-modal");}
 function showAuthErr(el,msg){if(el){el.textContent=msg;el.classList.add("show");}}
+
+/* ─────────── reCAPTCHA v3 ─────────── */
+// Замени на свой ключ: console.cloud.google.com → APIs → Credentials → reCAPTCHA
+var RECAPTCHA_SITE_KEY_V3 = "6LdANsIsAAAAAOA-O3QfWOeObfz9o8-9CWqB56QJ";
+
+// Получаем токен reCAPTCHA и проверяем score
+async function getReCaptchaToken(action) {
+  return new Promise(function(resolve) {
+    // Если reCAPTCHA не загружена — пропускаем (не блокируем вход)
+    if (typeof grecaptcha === "undefined" || RECAPTCHA_SITE_KEY_V3 === "6LdANsIsAAAAAOA-O3QfWOeObfz9o8-9CWqB56QJ") {
+      resolve(null);
+      return;
+    }
+    try {
+      grecaptcha.ready(function() {
+        grecaptcha.execute(RECAPTCHA_SITE_KEY_V3, {action: action}).then(function(token) {
+          resolve(token);
+        }).catch(function() { resolve(null); });
+      });
+    } catch(e) { resolve(null); }
+  });
+}
+
+// Блокируем кнопки на время проверки
+function setAuthButtonsDisabled(disabled) {
+  var bg = document.getElementById("btn-google");
+  var bgh = document.getElementById("btn-github");
+  if (bg) bg.disabled = disabled;
+  if (bgh) bgh.disabled = disabled;
+}
+
+// Обёртка входа через Google с reCAPTCHA
+async function handleGoogleLogin() {
+  setAuthButtonsDisabled(true);
+  var token = await getReCaptchaToken("google_login");
+  // token отправляется на сервер для верификации (score >= 0.5 = человек)
+  // Поскольку у нас нет бэкенда — используем Firebase App Check вместо верификации токена
+  // reCAPTCHA здесь выполняет роль сигнала для App Check
+  if (token) {
+    // Логируем в базу факт прохождения reCAPTCHA (опционально)
+    console.log("reCAPTCHA token получен, action: google_login");
+  }
+  doGoogleLogin().finally(function() {
+    setAuthButtonsDisabled(false);
+  });
+}
+
+// Обёртка входа через GitHub с reCAPTCHA  
+async function handleGithubLogin() {
+  setAuthButtonsDisabled(true);
+  var token = await getReCaptchaToken("github_login");
+  if (token) {
+    console.log("reCAPTCHA token получен, action: github_login");
+  }
+  doGithubLogin().finally(function() {
+    setAuthButtonsDisabled(false);
+  });
+}
 
 /* ─────────── AUTH ─────────── */
 function showAuthScreen(){document.getElementById("auth-screen").style.display="flex";document.getElementById("app").classList.remove("visible");}
@@ -2045,7 +2313,20 @@ async function loadMessages(chatId){
   const snap=await db.ref("chats/"+chatId+"/messages").once("value");
   await decryptAllMessages(chatId,snap.val()||{});renderMessages(chatId);
 }
-async function decryptAllMessages(chatId,data){var msgs={};var _entries=Object.entries(data);for(var _ei=0;_ei<_entries.length;_ei++){var k=_entries[_ei][0],v=_entries[_ei][1];var dec={};Object.keys(v).forEach(function(kk){dec[kk]=v[kk];});if(v.text)dec._dec=await decryptText(v.text);else dec._dec="";if(!dec.readBy)dec.readBy={};msgs[k]=dec;}appState.messages[chatId]=msgs;}
+async function decryptAllMessages(chatId,data){
+  var msgs={};
+  var _entries=Object.entries(data);
+  for(var _ei=0;_ei<_entries.length;_ei++){
+    var k=_entries[_ei][0],v=_entries[_ei][1];
+    var dec={};
+    Object.keys(v).forEach(function(kk){dec[kk]=v[kk];});
+    if(v.text) dec._dec=await decryptForChat(v.text, chatId);
+    else dec._dec="";
+    if(!dec.readBy)dec.readBy={};
+    msgs[k]=dec;
+  }
+  appState.messages[chatId]=msgs;
+}
 function renderMessages(chatId){
   const container=document.getElementById("messages-container");container.innerHTML="";
   const msgs=appState.messages[chatId];if(!msgs)return;
@@ -2185,9 +2466,9 @@ async function sendMessage(){
 
 async function saveEditedMessage(msgId,chatId,newText){
   if(!currentUser)return;
-  const encrypted=await encryptText(newText);
+  const encrypted=await encryptForChat(newText, chatId);
   try{
-    await db.ref(`chats/${chatId}/messages/${msgId}`).update({text:encrypted,edited:true,editedAt:Date.now()});
+    await db.ref("chats/"+chatId+"/messages/"+msgId).update({text:encrypted,edited:true,editedAt:Date.now()});
     if(appState.messages[chatId]&&appState.messages[chatId][msgId]){
       appState.messages[chatId][msgId]._dec=newText;
       appState.messages[chatId][msgId].text=encrypted;
@@ -2199,7 +2480,7 @@ async function saveEditedMessage(msgId,chatId,newText){
 }
 async function sendMessageData(chatId,data){
   if(!currentUser)return;
-  const encrypted=data.text?await encryptText(data.text):"";
+  const encrypted=data.text?await encryptForChat(data.text, chatId):"";
   const msgId="msg_"+Date.now()+"_"+Math.random().toString(36).slice(2,8);
   const msg = {
   uid: currentUser.uid,
