@@ -1240,14 +1240,13 @@ function plural(n, f1, f2, f5) {
   if (v2 >= 2 && v2 <= 4) return f2;
   return f5;
 }
-
+  
 const RECAPTCHA_SITE_KEY = "6LdANsIsAAAAAOA-O3QfWOeObfz9o8-9CWqB56QJ";
 let appCheckInitialized = false;
 
 async function initAppCheck() {
   if (appCheckInitialized) return;
   try {
-    // Загружаем firebase-app-check
     await new Promise(function(resolve, reject) {
       var s = document.createElement("script");
       s.src = "https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js";
@@ -1540,8 +1539,7 @@ function setSidebarTab(tab){document.querySelectorAll(".sidebar-btn").forEach(b=
 function openAboutModal(){closeSettings();openModal("about-modal");}
 function showAuthErr(el,msg){if(el){el.textContent=msg;el.classList.add("show");}}
 
-/* ─────────── reCAPTCHA v3 ─────────── */
-// Замени на свой ключ: console.cloud.google.com → APIs → Credentials → reCAPTCHA
+
 var RECAPTCHA_SITE_KEY_V3 = "6LdANsIsAAAAAOA-O3QfWOeObfz9o8-9CWqB56QJ";
 
 // Получаем токен reCAPTCHA и проверяем score
